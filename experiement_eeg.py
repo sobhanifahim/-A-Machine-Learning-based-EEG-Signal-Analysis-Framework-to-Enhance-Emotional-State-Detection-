@@ -110,7 +110,7 @@ df['Mind State'] = le.fit_transform(df['Mind State'])
 metadata = SingleTableMetadata()
 metadata.detect_from_dataframe(data=df)
 
-synthesizer=TVAESynthesizer(
+synthesizer=CTGANSynthesizer(
     metadata,
     epochs=2000,
     batch_size=500,
