@@ -13,7 +13,7 @@ Original file is located at
 !pip install --upgrade tensorflow keras
 
 !pip install scikeras
-
+# importing libraries
 import pandas as pd
 import numpy as np
 from numpy import mean
@@ -48,10 +48,10 @@ from imblearn.over_sampling import ADASYN
 from collections import Counter
 from imblearn.over_sampling import SMOTE
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-
+#load Data
 df=pd.read_csv('/content/dataset-eeg.csv')
 df.drop(columns=['Patient_ID','Gender'], axis=1, inplace=True)
-
+# check data information
 print("Shape of dataset:", df.shape)
 print("\nData Types:")
 print(df.dtypes)
@@ -102,10 +102,11 @@ if target_col in df.columns:
             sns.boxplot(x=target_col, y=col, data=df, palette="Set3")
             plt.title(f"{col} vs {target_col}")
             plt.show()
-
+# Label data for categorical value
 le = LabelEncoder()
 df['Mind State'] = le.fit_transform(df['Mind State'])
 
+#Generating synthetic data
 metadata = SingleTableMetadata()
 metadata.detect_from_dataframe(data=df)
 
@@ -131,7 +132,7 @@ frequency_pairs = [
 for low_col, high_col in frequency_pairs:
     mask = synthetic_data[low_col] > synthetic_data[high_col]
     synthetic_data.loc[mask, [low_col, high_col]] = synthetic_data.loc[mask, [high_col, low_col]].values
-
+# checking data quality of synthetic data with original data
 quality_report = evaluate_quality(
     df,
     synthetic_data,
@@ -177,7 +178,6 @@ X_res_smote, y_res_smote = smote.fit_resample(X, y)
 print("After SMOTE sampling shapes:", X_res_smote.shape, y_res_smote.shape)
 print("Target distribution AFTER:", Counter(y_res_smote))
 
-import pandas as pd
 
 # Combine ADASYN features and target back into a DataFrame
 adasyn_df = pd.DataFrame(X_res_adasyn, columns=X.columns)
@@ -201,12 +201,12 @@ y = merged_df['Mind State']
 if y.dtype == 'object':
     le = LabelEncoder()
     y = le.fit_transform(y)
-
+#Splitting the dataset
 X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.30, stratify=y, random_state=42)
 X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.50, stratify=y_temp, random_state=42)
-
+#applying Cross Validation
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-
+# function for 1D CNN parameters
 def create_1dcnn():
     model = Sequential()
     model.add(Conv1D(filters=32, kernel_size=2, activation='relu', input_shape=(6, 1)))
@@ -215,12 +215,12 @@ def create_1dcnn():
     model.add(Dense(len(np.unique(y)), activation='softmax'))
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     return model
-
+#Scaling the data
 scaler = StandardScaler()
 scaler.fit(X_train)
 
 features = X_train.columns
-
+#splitting the data as train, test and validation 
 X_train[features] = scaler.transform(X_train)
 X_val[features] = scaler.transform(X_val)
 X_test[features] = scaler.transform(X_test)
@@ -231,7 +231,7 @@ parameters = {
     "solver":["newton-cg","lbfgs","liblinear","sag","saga"],
     "max_iter":[500,1000]
 }
-
+#Logistic regression
 lr_cv = GridSearchCV(LogisticRegression(), parameters, cv=5)
 lr_cv.fit(X_train[features],y_train.values.ravel())
 
@@ -244,7 +244,7 @@ parameters = {
     "min_samples_leaf":[2,4,8,16,32],
     "min_samples_split":[2,4,8,16,32]
 }
-
+#Decision Tree
 dt_cv = GridSearchCV(DecisionTreeClassifier(), parameters, cv=5)
 dt_cv.fit(X_train[features],y_train.values.ravel())
 
@@ -255,7 +255,7 @@ parameters = {
     "max_depth":[2,4,8,16,32],
     "n_estimators":[5,50,250,500]
 }
-
+#Random Forest
 rf_cv = GridSearchCV(RandomForestClassifier(), parameters, cv=5)
 rf_cv.fit(X_train[features],y_train.values.ravel())
 
@@ -266,7 +266,7 @@ parameters = {
     "learning_rate":[0.01,0.1,1.0,10,100],
     "n_estimators":[5,50,250,500]
 }
-
+#Ada Boost Classifier
 ada_cv = GridSearchCV(AdaBoostClassifier(), parameters, cv=5)
 ada_cv.fit(X_train[features],y_train.values.ravel())
 
@@ -279,7 +279,7 @@ parameters = {
     "max_depth":[2,4,8,16,32],
     "n_estimators":[5,50,250,500]
 }
-
+#Light Gradient Boosting Machine
 lgbm_cv = GridSearchCV(LGBMClassifier(), parameters, cv=5)
 lgbm_cv.fit(X_train[features],y_train.values.ravel())
 
@@ -292,7 +292,7 @@ parameters = {
     "n_neighbors":range(2,21),
     "weights":["uniform","distance"]
 }
-
+# K- nearest neighbour
 knn_cv = GridSearchCV(KNeighborsClassifier(), parameters, cv=5)
 knn_cv.fit(X_train[features],y_train.values.ravel())
 
@@ -303,7 +303,7 @@ parameters = {
     "C":[0.001,0.01,0.1,1.0,10,100,1000],
     "kernel":["linear","poly","rbf","sigmoid"]
 }
-
+#Support Vector Machine
 svc_cv = GridSearchCV(SVC(), parameters, cv=5)
 svc_cv.fit(X_train[features],y_train.values.ravel())
 
@@ -316,7 +316,7 @@ parameters = {
     "learning_rate":["constant","invscaling","adaptive"],
     "solver":["lbfgs","sgd","adam"]
 }
-
+# Multi layer perceptron
 mlp_cv = GridSearchCV(MLPClassifier(), parameters, cv=5)
 mlp_cv.fit(X_train[features],y_train.values.ravel())
 
@@ -327,7 +327,7 @@ estimators = [("lr",lr),("dt",dt),("rf",rf),("ada",ada),("lgbm",lgbm),("knn",knn
 parameters = {
     "passthrough":[True,False]
 }
-
+#Grid Search
 sc_cv = GridSearchCV(StackingClassifier(estimators=estimators, final_estimator=lr_cv.best_estimator_), parameters, cv=5)
 sc_cv.fit(X_train[features],y_train.values.ravel())
 
@@ -335,6 +335,7 @@ sc = sc_cv.best_estimator_
 sc.fit(X_train[features],y_train.values.ravel())
 
 models = [lr,dt,rf,ada,lgbm,knn,svc,mlp,sc]
+#evaluating traing performance
 train_set = pd.DataFrame()
 
 for i in models:
@@ -352,7 +353,7 @@ for i in models:
         )
         train_set = pd.concat([train_set,temp])
 train_set
-
+#Evaluating test performance
 test_set = pd.DataFrame()
 
 for i in models:
@@ -370,7 +371,7 @@ for i in models:
         )
         test_set = pd.concat([test_set,temp])
 test_set
-
+#Evaluating validation performance
 val_set = pd.DataFrame()
 
 for i in models:
@@ -388,7 +389,7 @@ for i in models:
         )
         val_set = pd.concat([val_set,temp])
 val_set
-
+#Evaluating CNN
 X_train_cnn = np.expand_dims(X_train.values, axis=2)
 X_val_cnn = np.expand_dims(X_val.values, axis=2)
 cnn_model = create_1dcnn()
