@@ -43,7 +43,7 @@ def dwt_band_power(signal, fs, bands, wavelet='db4', level=6):
 
 # Define EEG Bands
 bands = {
-    "Low_Alpha": (8, 10),
+    "Low_Alpha": (0, 10),
     "High_Alpha": (10, 12),
     "Low_Beta": (13, 20),
     "High_Beta": (20, 30),
